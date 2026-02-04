@@ -10,9 +10,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-test-secret-key-change-in-production')
 
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+# Build ALLOWED_HOSTS from environment or default
+_allowed_hosts = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,expense-tracker-p79n.onrender.com,*.onrender.com',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+ALLOWED_HOSTS = _allowed_hosts
 
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
