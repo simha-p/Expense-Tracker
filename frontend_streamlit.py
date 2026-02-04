@@ -7,8 +7,11 @@ import pandas as pd
 from functools import lru_cache
 import time
 
-# Configuration
-API_URL = os.getenv("API_URL", "http://localhost:8000/api")
+# Configuration - Try Streamlit secrets first, then environment variables, then default
+try:
+    API_URL = st.secrets["API_URL"]
+except (KeyError, AttributeError):
+    API_URL = os.getenv("API_URL", "http://localhost:8000/api")
 
 # Session management
 if "last_refresh" not in st.session_state:
