@@ -110,9 +110,10 @@ def add_expense(description, amount, category, date, idempotency_key):
 def get_total_expenses_cached():
     """Get total expenses from API"""
     try:
-        response = requests.get(f"{API_URL}/expenses/total/", timeout=10)
+        response = requests.get(f"{API_URL}/expenses/", timeout=10)
         if response.status_code == 200:
-            return response.json().get("total", 0)
+            expenses = response.json()
+            return sum(float(e.get("amount", 0)) for e in expenses)
         return 0
     except:
         return 0
@@ -193,18 +194,18 @@ with col4:
 cols = st.columns(3)
 
 # Fetch total and count
-total = get_total_expenses()
-expenses = load_expenses()
+total = get_total_expenses() or 0
+expenses = load_expenses() or []
 
 with cols[0]:
-    st.metric("Total Expenses", f"${total:.2f}", delta=None)
+    st.metric("Total Expenses", f"${float(total):.2f}", delta=None)
 
 with cols[1]:
     st.metric("Number of Expenses", len(expenses), delta=None)
 
 with cols[2]:
-    if expenses:
-        avg = total / len(expenses) if expenses else 0
+    if expenses and total > 0:
+        avg = float(total) / len(expenses)
         st.metric("Average Expense", f"${avg:.2f}", delta=None)
     else:
         st.metric("Average Expense", "$0.00", delta=None)
