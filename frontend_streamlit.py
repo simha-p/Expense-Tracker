@@ -4,17 +4,12 @@ from datetime import datetime
 import json
 import os
 import pandas as pd
-from functools import lru_cache
 import time
 
-# Configuration - Try Streamlit secrets first, then environment variables, then default
-try:
-    API_URL = st.secrets["API_URL"]
-except (KeyError, AttributeError):
-    API_URL = os.getenv("API_URL", "http://localhost:8000/api")
-
-# Debug: Show API URL being used
-st.write(f"🔗 **DEBUG** - API_URL: `{API_URL}`")
+# Configuration - Get API URL from Streamlit secrets or environment
+API_URL = st.secrets.get("API_URL") if hasattr(st, "secrets") and st.secrets else os.getenv("API_URL")
+if not API_URL:
+    API_URL = "https://expense-tracker-p79n.onrender.com/api"
 
 # Session management
 if "last_refresh" not in st.session_state:
@@ -63,18 +58,24 @@ st.markdown("""
 def load_expenses_cached():
     """Fetch expenses from Django API"""
     try:
-        response = requests.get(f"{API_URL}/expenses/", timeout=10)
+        url = f"{API_URL}/expenses/"
+        response = requests.get(url, timeout=10, headers={"Accept": "application/json"})
         if response.status_code == 200:
             return response.json()
-        return []
+        elif response.status_code == 404:
+            st.error(f"❌ Endpoint not found: {url}")
+            return []
+        else:
+            st.error(f"❌ Backend error: {response.status_code}")
+            return []
     except requests.exceptions.Timeout:
         st.error("⏱️ Backend timeout. Please try again.")
         return []
-    except requests.exceptions.ConnectionError:
-        st.error("❌ Cannot connect to backend. Is it running?")
+    except requests.exceptions.ConnectionError as e:
+        st.error(f"❌ Cannot connect to backend at {API_URL}")
         return []
     except Exception as e:
-        st.error(f"❌ Error loading expenses: {str(e)}")
+        st.error(f"❌ Error: {str(e)}")
         return []
 
 def load_expenses():
