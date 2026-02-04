@@ -61,7 +61,15 @@ def load_expenses_cached():
         url = f"{API_URL}/expenses/"
         response = requests.get(url, timeout=10, headers={"Accept": "application/json"})
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # Handle paginated response
+            if isinstance(data, dict) and "results" in data:
+                return data["results"]
+            # Handle direct list response
+            elif isinstance(data, list):
+                return data
+            else:
+                return []
         elif response.status_code == 404:
             st.error(f"❌ Endpoint not found: {url}")
             return []
@@ -112,7 +120,14 @@ def get_total_expenses_cached():
     try:
         response = requests.get(f"{API_URL}/expenses/", timeout=10)
         if response.status_code == 200:
-            expenses = response.json()
+            data = response.json()
+            # Handle paginated response
+            if isinstance(data, dict) and "results" in data:
+                expenses = data["results"]
+            elif isinstance(data, list):
+                expenses = data
+            else:
+                return 0
             return sum(float(e.get("amount", 0)) for e in expenses)
         return 0
     except:
