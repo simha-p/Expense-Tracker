@@ -13,6 +13,9 @@ try:
 except (KeyError, AttributeError):
     API_URL = os.getenv("API_URL", "http://localhost:8000/api")
 
+# Debug: Show API URL being used
+st.write(f"🔗 **DEBUG** - API_URL: `{API_URL}`")
+
 # Session management
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = 0
