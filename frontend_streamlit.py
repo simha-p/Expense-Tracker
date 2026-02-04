@@ -73,8 +73,15 @@ def add_expense(description, amount, category, date, idempotency_key):
         if response.status_code in [200, 201]:
             return True, "✅ Expense added successfully!"
         else:
-            error_msg = response.json().get("detail", f"Error {response.status_code}")
-            return False, f"❌ {error_msg}"
+            try:
+                error_data = response.json()
+                if isinstance(error_data, dict):
+                    error_msg = str(error_data)
+                else:
+                    error_msg = str(error_data)
+            except:
+                error_msg = response.text
+            return False, f"❌ Error {response.status_code}: {error_msg}"
     except Exception as e:
         return False, f"❌ Error: {str(e)}"
 
@@ -101,7 +108,7 @@ with st.sidebar:
         
         category = st.selectbox(
             "Category",
-            ["Food", "Transport", "Entertainment", "Utilities", "Health", "Education", "Other"]
+            ["food", "transport", "entertainment", "utilities", "shopping", "health", "other"]
         )
         
         date = st.date_input(
