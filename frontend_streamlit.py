@@ -1,21 +1,15 @@
 import streamlit as st
 import requests
-from datetime import datetime
-import json
-import os
+from datetime import datetime, timedelta
 import pandas as pd
-import time
+import os
 
-# Configuration - Get API URL from Streamlit secrets or environment
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
 API_URL = st.secrets.get("API_URL") if hasattr(st, "secrets") and st.secrets else os.getenv("API_URL")
 if not API_URL:
     API_URL = "https://expense-tracker-p79n.onrender.com/api"
-
-# Session management
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = 0
-if "expenses_cache" not in st.session_state:
-    st.session_state.expenses_cache = []
 
 st.set_page_config(
     page_title="Expense Tracker",
@@ -24,35 +18,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
-    <style>
-    .main {
-        padding: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        text-align: center;
-    }
-    .success-msg {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    .error-msg {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.title("💰 Expense Tracker")
+st.markdown("Track your expenses easily and efficiently")
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
 @st.cache_data(ttl=60)
 def load_expenses_cached():
@@ -60,6 +31,7 @@ def load_expenses_cached():
     try:
         url = f"{API_URL}/expenses/"
         response = requests.get(url, timeout=10, headers={"Accept": "application/json"})
+        
         if response.status_code == 200:
             data = response.json()
             # Handle paginated response
@@ -70,24 +42,14 @@ def load_expenses_cached():
                 return data
             else:
                 return []
-        elif response.status_code == 404:
-            st.error(f"❌ Endpoint not found: {url}")
-            return []
         else:
-            st.error(f"❌ Backend error: {response.status_code}")
             return []
-    except requests.exceptions.Timeout:
-        st.error("⏱️ Backend timeout. Please try again.")
-        return []
-    except requests.exceptions.ConnectionError as e:
-        st.error(f"❌ Cannot connect to backend at {API_URL}")
-        return []
     except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
+        st.error(f"❌ Cannot load expenses: {str(e)}")
         return []
 
 def load_expenses():
-    """Load expenses with user-triggered refresh option"""
+    """Load expenses with caching"""
     return load_expenses_cached()
 
 def add_expense(description, amount, category, date, idempotency_key):
@@ -104,59 +66,22 @@ def add_expense(description, amount, category, date, idempotency_key):
         response = requests.post(
             f"{API_URL}/expenses/",
             json=payload,
-            headers=headers
+            headers=headers,
+            timeout=10
         )
         
         if response.status_code in [200, 201]:
-            return True, "Expense added successfully!"
+            return True, "✅ Expense added successfully!"
         else:
-            return False, f"Error: {response.json().get('detail', 'Unknown error')}"
+            error_msg = response.json().get("detail", f"Error {response.status_code}")
+            return False, f"❌ {error_msg}"
     except Exception as e:
-        return False, f"Error: {str(e)}"
+        return False, f"❌ Error: {str(e)}"
 
-@st.cache_data(ttl=60)
-def get_total_expenses_cached():
-    """Get total expenses from API"""
-    try:
-        response = requests.get(f"{API_URL}/expenses/", timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            # Handle paginated response
-            if isinstance(data, dict) and "results" in data:
-                expenses = data["results"]
-            elif isinstance(data, list):
-                expenses = data
-            else:
-                return 0
-            return sum(float(e.get("amount", 0)) for e in expenses)
-        return 0
-    except:
-        return 0
+# ============================================================================
+# SIDEBAR - ADD EXPENSE FORM
+# ============================================================================
 
-def get_total_expenses():
-    """Get total expenses"""
-    return get_total_expenses_cached()
-
-@st.cache_data(ttl=3600)
-def get_categories_cached():
-    """Get available categories from API"""
-    try:
-        response = requests.get(f"{API_URL}/expenses/categories/", timeout=10)
-        if response.status_code == 200:
-            return response.json().get("categories", [])
-        return ["Food", "Transport", "Entertainment", "Utilities", "Other"]
-    except:
-        return ["Food", "Transport", "Entertainment", "Utilities", "Other"]
-
-def get_categories():
-    """Get categories"""
-    return get_categories_cached()
-
-# Main Page
-st.title("💰 Expense Tracker")
-st.markdown("Track your expenses easily and efficiently")
-
-# Sidebar - Add Expense Form
 with st.sidebar:
     st.header("➕ Add Expense")
     
@@ -174,134 +99,165 @@ with st.sidebar:
             format="%.2f"
         )
         
-        categories = get_categories()
-        category = st.selectbox("Category", categories)
+        category = st.selectbox(
+            "Category",
+            ["Food", "Transport", "Entertainment", "Utilities", "Health", "Education", "Other"]
+        )
         
-        date = st.date_input("Date", value=datetime.now().date())
+        date = st.date_input(
+            "Date",
+            value=datetime.now().date(),
+            max_value=datetime.now().date()
+        )
         
-        submit = st.form_submit_button("Add Expense", use_container_width=True)
+        submitted = st.form_submit_button("➕ Add Expense", use_container_width=True)
         
-        if submit:
-            if not description:
-                st.error("Please enter a description")
-            elif amount <= 0:
-                st.error("Amount must be greater than 0")
+        if submitted:
+            if not description or amount <= 0:
+                st.error("❌ Please fill in all fields correctly")
             else:
-                # Generate idempotency key
-                idempotency_key = f"{description}_{amount}_{date}"
-                success, message = add_expense(
-                    description, amount, category, str(date), idempotency_key
-                )
+                idempotency_key = f"{description}-{amount}-{date}"
+                success, message = add_expense(description, amount, category, str(date), idempotency_key)
+                
                 if success:
                     st.success(message)
+                    st.cache_data.clear()
                     st.rerun()
                 else:
                     st.error(message)
 
-# Main Content - Add Refresh Button
-col1, col2, col3, col4 = st.columns(4)
+# ============================================================================
+# MAIN CONTENT - METRICS & DATA
+# ============================================================================
 
-with col4:
-    if st.button("🔄 Refresh Data", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
+# Load expenses
+expenses = load_expenses()
 
-cols = st.columns(3)
-
-# Fetch total and count
-total = get_total_expenses() or 0
-expenses = load_expenses() or []
-
-with cols[0]:
-    st.metric("Total Expenses", f"${float(total):.2f}", delta=None)
-
-with cols[1]:
-    st.metric("Number of Expenses", len(expenses), delta=None)
-
-with cols[2]:
-    if expenses and total > 0:
-        avg = float(total) / len(expenses)
-        st.metric("Average Expense", f"${avg:.2f}", delta=None)
+if expenses:
+    # Calculate metrics
+    total = sum(float(e.get("amount", 0)) for e in expenses)
+    count = len(expenses)
+    avg = total / count if count > 0 else 0
+    
+    # Display metrics
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Expenses", f"${total:.2f}")
+    with col2:
+        st.metric("Number of Expenses", count)
+    with col3:
+        st.metric("Average Expense", f"${avg:.2f}")
+    
+    st.divider()
+    
+    # ====================================================================
+    # FILTERS
+    # ====================================================================
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        categories = ["All"] + sorted(list(set(e.get("category", "Other") for e in expenses)))
+        selected_category = st.multiselect(
+            "Filter by Category",
+            categories,
+            default=["All"]
+        )
+    
+    with col2:
+        sort_order = st.radio(
+            "Sort by Date",
+            ["Newest First", "Oldest First"],
+            horizontal=True
+        )
+    
+    # ====================================================================
+    # FILTER AND SORT
+    # ====================================================================
+    
+    if "All" in selected_category:
+        filtered_expenses = expenses
     else:
-        st.metric("Average Expense", "$0.00", delta=None)
-
-st.divider()
-
-# Filters and Sorting
-col1, col2 = st.columns(2)
-
-with col1:
-    categories = get_categories()
-    selected_category = st.multiselect(
-        "Filter by Category",
-        categories,
-        default=categories
-    )
-
-with col2:
-    sort_order = st.radio(
-        "Sort by Date",
-        ["Newest First", "Oldest First"],
-        horizontal=True
-    )
-
-# Filter and sort expenses
-filtered_expenses = [
-    exp for exp in expenses
-    if exp.get("category") in selected_category
-]
-
-if sort_order == "Oldest First":
-    filtered_expenses.sort(key=lambda x: x.get("date", ""))
-else:
-    filtered_expenses.sort(key=lambda x: x.get("date", ""), reverse=True)
-
-# Display Expenses Table
-st.subheader("📊 Your Expenses")
-
-if filtered_expenses:
-    # Convert to DataFrame for better display
-    df_data = []
-    for exp in filtered_expenses:
-        df_data.append({
-            "Date": exp.get("date", ""),
-            "Description": exp.get("description", ""),
-            "Category": exp.get("category", ""),
-            "Amount": f"${exp.get('amount', 0):.2f}"
-        })
+        filtered_expenses = [
+            exp for exp in expenses
+            if exp.get("category") in selected_category
+        ]
     
-    df = pd.DataFrame(df_data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    if sort_order == "Oldest First":
+        filtered_expenses.sort(key=lambda x: x.get("date", ""))
+    else:
+        filtered_expenses.sort(key=lambda x: x.get("date", ""), reverse=True)
     
-    # Category breakdown
-    st.subheader("📈 Spending by Category")
+    # ====================================================================
+    # DISPLAY TABLE
+    # ====================================================================
     
-    category_totals = {}
-    for exp in filtered_expenses:
-        cat = exp.get("category", "Other")
-        category_totals[cat] = category_totals.get(cat, 0) + exp.get("amount", 0)
+    st.subheader("📊 Your Expenses")
     
-    if category_totals:
-        # Display as DataFrame
-        df_categories = pd.DataFrame([
-            {"Category": cat, "Amount": f"${amt:.2f}"}
-            for cat, amt in sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    if filtered_expenses:
+        # Create DataFrame for better display
+        df = pd.DataFrame([
+            {
+                "Date": e.get("date", ""),
+                "Description": e.get("description", ""),
+                "Category": e.get("category", ""),
+                "Amount": f"${float(e.get('amount', 0)):.2f}"
+            }
+            for e in filtered_expenses
         ])
-        st.dataframe(df_categories, use_container_width=True, hide_index=True)
         
-        # Display as chart
-        chart_data = {cat: amt for cat, amt in category_totals.items()}
-        st.bar_chart(chart_data, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("📭 No expenses found for the selected filters")
+    
+    # ====================================================================
+    # CHARTS
+    # ====================================================================
+    
+    st.subheader("📈 Analytics")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Spending by Category**")
+        category_totals = {}
+        for exp in filtered_expenses:
+            cat = exp.get("category", "Other")
+            amt = float(exp.get("amount", 0))
+            category_totals[cat] = category_totals.get(cat, 0) + amt
+        
+        if category_totals:
+            st.bar_chart(category_totals)
+        else:
+            st.info("No data to display")
+    
+    with col2:
+        st.write("**Recent Expenses**")
+        recent = sorted(expenses, key=lambda x: x.get("date", ""), reverse=True)[:5]
+        
+        for exp in recent:
+            with st.container():
+                col_desc, col_cat, col_amt = st.columns([2, 1, 1])
+                with col_desc:
+                    st.caption(f"📝 {exp.get('description', 'N/A')}")
+                with col_cat:
+                    st.caption(f"🏷️ {exp.get('category', 'N/A')}")
+                with col_amt:
+                    st.caption(f"💵 ${float(exp.get('amount', 0)):.2f}")
+
 else:
     st.info("📭 No expenses found. Start by adding one in the sidebar!")
 
-# Footer
+# ============================================================================
+# FOOTER
+# ============================================================================
+
 st.divider()
 
-footer_col1, footer_col2, footer_col3 = st.columns(3)
-with footer_col1:
+col1, col2, col3 = st.columns(3)
+with col1:
     st.caption(f"🔗 API: {API_URL}")
-with footer_col2:
+with col2:
     st.caption("✨ Built with Streamlit")
-with footer_col3:
+with col3:
     st.caption("v1.0 • Expense Tracker")
