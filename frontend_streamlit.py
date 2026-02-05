@@ -85,6 +85,40 @@ def add_expense(description, amount, category, date, idempotency_key):
     except Exception as e:
         return False, f"❌ Error: {str(e)}"
 
+def delete_expense(expense_id):
+    """Delete a single expense via Django API"""
+    try:
+        response = requests.delete(
+            f"{API_URL}/expenses/{expense_id}/",
+            timeout=10
+        )
+        return response.status_code in [200, 204]
+    except Exception as e:
+        st.error(f"❌ Error deleting expense: {str(e)}")
+        return False
+
+def reset_all_expenses():
+    """Delete all expenses for a fresh start"""
+    try:
+        # Get all expenses
+        expenses = load_expenses_cached()
+        
+        if not expenses:
+            return True, "✅ No expenses to clear!"
+        
+        # Delete each expense
+        deleted_count = 0
+        for exp in expenses:
+            if delete_expense(exp.get("id")):
+                deleted_count += 1
+        
+        if deleted_count == len(expenses):
+            return True, f"✅ Cleared {deleted_count} expense(s)! Ready for new user."
+        else:
+            return False, f"⚠️ Deleted {deleted_count}/{len(expenses)} expenses"
+    except Exception as e:
+        return False, f"❌ Error resetting expenses: {str(e)}"
+
 # ============================================================================
 # SIDEBAR - ADD EXPENSE FORM
 # ============================================================================
@@ -132,6 +166,25 @@ with st.sidebar:
                     st.rerun()
                 else:
                     st.error(message)
+    
+    # ====================================================================
+    # NEW USER / RESET SECTION
+    # ====================================================================
+    
+    st.divider()
+    st.header("🔄 New User?")
+    st.markdown("Clear all expenses and start fresh with a clean slate.")
+    
+    if st.button("🗑️ Reset All Expenses", use_container_width=True, type="secondary"):
+        with st.spinner("🔄 Clearing all expenses..."):
+            success, message = reset_all_expenses()
+            
+            if success:
+                st.success(message)
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error(message)
 
 # ============================================================================
 # MAIN CONTENT - METRICS & DATA

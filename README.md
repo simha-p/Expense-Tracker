@@ -1,74 +1,138 @@
-# Expense Tracker Application
+# 💰 Expense Tracker Application
 
-A full-stack personal finance application for tracking and analyzing personal expenses with a Django REST API backend and React frontend.
+A full-stack personal finance application for tracking and analyzing personal expenses with a Django REST API backend and Streamlit frontend.
+
+## 🚀 Live Application
+
+### **⭐ [OPEN LIVE APP HERE](https://expense-tracker-h5d65qzjwwahsmf8wxyhpd.streamlit.app/)**
+
+### Live Links
+- 🌐 **Frontend (Streamlit Cloud):** https://expense-tracker-h5d65qzjwwahsmf8wxyhpd.streamlit.app/
+- 🔗 **Backend API (Render):** https://expense-tracker-p79n.onrender.com/
+- 📱 **API Health Check:** https://expense-tracker-p79n.onrender.com/ (returns JSON)
+
+### ✨ Status: **LIVE & PRODUCTION READY** 🟢
+
+---
 
 ## Features
 
 ### Core Features ✅
 - ✅ **Create Expenses** - Add new expenses with amount, category, description, and date
 - ✅ **View Expenses** - Display all expenses in a formatted table
-- ✅ **Filter by Category** - Filter expenses by category (Food, Transport, Entertainment, etc.)
+- ✅ **Filter by Category** - Filter expenses by category (food, transport, entertainment, utilities, shopping, health, other)
 - ✅ **Sort by Date** - Sort expenses with newest first (default) or oldest first
-- ✅ **Calculate Totals** - See total and count of visible expenses
+- ✅ **Calculate Totals** - See total expenses, count, and average
 - ✅ **Idempotent Operations** - Safe retries with duplicate prevention using Idempotency-Key headers
 - ✅ **Form Validation** - Client and server-side validation
 - ✅ **Error Handling** - Graceful error messages and loading states
 - ✅ **Responsive Design** - Works on desktop and mobile devices
+- ✅ **Analytics & Charts** - Visualize spending by category
+- ✅ **Recent Expenses** - Quick view of 5 most recent transactions
 
-### Nice-to-Have Features ✅
+### Advanced Features ✅
 - ✅ **Input Validation** - Prevents negative amounts, validates dates and descriptions
 - ✅ **Loading States** - Shows loading spinner while fetching data
 - ✅ **Error States** - Clear error messages for failed operations
 - ✅ **Duplicate Prevention** - Idempotency keys prevent duplicate charges on network retries
+- ✅ **Pagination** - Efficient handling of large datasets
+- ✅ **CORS Security** - Proper cross-origin configuration
 
 ## Technology Stack
+
+### Frontend
+- **Framework**: Streamlit 1.32.0 (Web UI)
+- **Data Tools**: Pandas 2.1.4
+- **HTTP Client**: Requests 2.31.0
+- **Python**: 3.9+
+- **Deployment**: Streamlit Cloud (FREE)
 
 ### Backend
 - **Framework**: Django 4.2.7
 - **API**: Django REST Framework 3.14.0
-- **Database**: SQLite (development) - easily upgradeable to PostgreSQL
-- **CORS**: django-cors-headers for cross-origin requests
-- **Python**: 3.8+
+- **Database**: PostgreSQL 16 (Render FREE tier)
+- **Server**: Gunicorn 21.2.0
+- **Container**: Docker
+- **CORS**: django-cors-headers
+- **Python**: 3.11
+- **Deployment**: Render (FREE)
 
-### Frontend
-- **Framework**: React 18.2.0
-- **HTTP Client**: Axios 1.6.2
-- **CSS**: Custom responsive CSS (no external UI framework)
-- **Node**: 14+, npm 6+
+### Infrastructure
+- **Frontend Hosting**: Streamlit Cloud (FREE)
+- **Backend Hosting**: Render (FREE tier)
+- **Database**: PostgreSQL on Render (FREE 12GB)
+- **Container Registry**: Docker
+- **Version Control**: GitHub
+
+### Cost: **$0/month** ✅
 
 ## Project Structure
 
 ```
 expense-tracker/
+├── streamlit_app.py              # Streamlit entry point
+├── frontend_streamlit.py          # Main Streamlit app (290 lines)
+├── requirements-streamlit.txt    # Frontend dependencies
+├── .streamlit/
+│   └── config.toml              # Streamlit config
 ├── backend/
-│   ├── manage.py                 # Django management script
+│   ├── manage.py                # Django management
+│   ├── Dockerfile               # Docker config
 │   ├── requirements.txt          # Python dependencies
-│   ├── expense_tracker/          # Django project folder
-│   │   ├── settings.py          # Django settings
-│   │   ├── urls.py              # Project URLs
-│   │   ├── wsgi.py              # WSGI application
-│   │   └── asgi.py              # ASGI application
-│   └── expenses/                 # Main app
-│       ├── models.py             # Expense model with idempotency support
-│       ├── views.py              # API views with filtering/sorting
-│       ├── serializers.py        # DRF serializers with validation
-│       ├── urls.py               # App URLs
-│       ├── admin.py              # Django admin
-│       └── migrations/           # Database migrations
-├── frontend/
-│   ├── package.json             # NPM dependencies
-│   ├── public/
-│   │   └── index.html           # HTML entry point
-│   └── src/
-│       ├── index.js             # React entry point
-│       ├── index.css            # Global styles
-│       ├── App.js               # Main component
-│       └── components/
-│           ├── ExpenseForm.js   # Form component
-│           ├── ExpenseList.js   # List component
-│           └── Alert.js         # Alert component
-└── README.md                     # This file
+│   ├── expense_tracker/          # Django project
+│   │   ├── settings.py          # Django settings (CORS, DB)
+│   │   ├── urls.py              # URL routing + health check
+│   │   └── wsgi.py              # WSGI application
+│   └── expenses/                # Django app
+│       ├── models.py            # Expense model
+│       ├── views.py             # REST API ViewSet
+│       ├── serializers.py       # DRF serializers
+│       └── urls.py              # API routes
+├── render.yaml                  # Render deployment config
+└── [Documentation Files]
+    ├── README_LIVE.md           # Main docs with live links
+    ├── LIVE_DEPLOYMENT.md       # How to use the app
+    ├── SOLUTION_SUMMARY.md      # What was built
+    └── SETUP_GUIDE.md           # Deploy your own
 ```
+
+---
+
+## ⚡ Quick Start
+
+### **Use the Live App (Easiest)**
+1. **Click here:** https://expense-tracker-h5d65qzjwwahsmf8wxyhpd.streamlit.app/
+2. Add expenses using the form
+3. View, filter, and analyze spending
+4. **100% FREE - No installation needed!**
+
+### **Deploy Your Own Instance**
+See [SETUP_GUIDE.md](SETUP_GUIDE.md) for step-by-step deployment instructions.
+
+---
+
+## 📖 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [README_LIVE.md](README_LIVE.md) | **Main documentation** - Overview, features, architecture |
+| [LIVE_DEPLOYMENT.md](LIVE_DEPLOYMENT.md) | **User guide** - How to use the live app, examples |
+| [SOLUTION_SUMMARY.md](SOLUTION_SUMMARY.md) | **Solution details** - What was built, how it works |
+| [SETUP_GUIDE.md](SETUP_GUIDE.md) | **Deployment guide** - Deploy your own instance |
+
+---
+
+## 🎯 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/expenses/` | List all expenses |
+| POST | `/api/expenses/` | Create new expense |
+| GET | `/api/expenses/{id}/` | Get single expense |
+| PUT | `/api/expenses/{id}/` | Update expense |
+| DELETE | `/api/expenses/{id}/` | Delete expense |
+
+---
 
 ## Installation & Setup
 
